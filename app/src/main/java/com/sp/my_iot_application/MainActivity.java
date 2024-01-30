@@ -172,7 +172,9 @@ public class MainActivity extends AppCompatActivity {
                             return true;
                         } else if (item.getItemId() == R.id.action_dashboard) {
                             // Handle Monitoring
-                            openPullDownMenuFragmentTest();
+                            // Open the DashboardActivity
+                            //Intent intent = new Intent(MainActivity.this, DashboardActivity.class);
+                           // startActivity(intent);
                             return true;
                         }
                         return false;
