@@ -24,6 +24,7 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -166,14 +167,19 @@ public class MainActivity extends AppCompatActivity {
                         // Handle bottom navigation item clicks here
                         if (item.getItemId() == R.id.action_home) {
                             // Handle Home
+                            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+                            startActivity(intent);
+                            // Finish the current activity
+                            finish();
                             return true;
                         } else if (item.getItemId() == R.id.action_tips) {
                             // Handle Tips
                             return true;
                         } else if (item.getItemId() == R.id.action_dashboard) {
-                            // Handle Monitoring
-                            Intent intent = new Intent(MainActivity.this, DashboardActivity.class);
-                            startActivity(intent);
+                            loadFragment(new DashboardFragment());
+                            return true;
+
+
                         }
                         return false;
                     }
@@ -432,6 +438,11 @@ public class MainActivity extends AppCompatActivity {
         editor.putString("serverIpAddress", ipAddress);
         editor.putInt("serverPort", port);
         editor.apply();
+    }
+    private void loadFragment(Fragment fragment) {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container2, fragment)
+                .commit();
     }
 
 }

@@ -9,6 +9,16 @@
 
   <!-- Fragment container -->
   <FrameLayout
+      android:id="@+id/fragment_container2"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="80dp"
+      android:elevation="10dp">
+
+    <!-- This FrameLayout will act as a container for the Fragment -->
+  </FrameLayout>
+
+  <FrameLayout
       android:id="@+id/fragment_container"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
@@ -181,13 +191,6 @@
     <!-- Fragment container -->
 
     <!-- Bottom navigation -->
-    <FrameLayout
-        android:id="@+id/fragment_container2"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="30dp">
-
-    </FrameLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
