@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
         // Assuming you have a GifImageView for fan and lamp icons
         GifImageView fanIcon = findViewById(R.id.fanIcon);
         GifImageView lampIcon = findViewById(R.id.lampIcon);
+        GifImageView pumpIcon = findViewById(R.id.pumpIcon);
 
 
 
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
         // Assuming you have a Button for fan and lamp buttons
         Button fanButton = findViewById(R.id.fanButton);
         Button lampButton = findViewById(R.id.lampButton);
+        Button pumpButton = findViewById(R.id.pumpButton);
 
         fanButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -119,7 +121,42 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // Make the HTTP API call immediately when the state changes
-                String actuatorCommand = isChecked ? "buzzer_on" : "buzzer_off";
+                String actuatorCommand = isChecked ? "servo_on" : "servo_off";
+                makeApiCall(actuatorCommand);
+                Log.d("ButtonState", "isChecked: " + isChecked);
+                Log.d("ApiCall", "Actuator Command: " + actuatorCommand);
+
+
+            }
+        });
+        pumpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Toggle the state
+                boolean isChecked = !pumpButton.isSelected();
+                pumpButton.setSelected(isChecked);
+
+                // Change the background resource based on the toggle state
+                int imageResource = isChecked ? R.drawable.ic_button_on : R.drawable.ic_button_off;
+                pumpButton.setBackgroundResource(imageResource);
+
+                if (isChecked) {
+                    int iconResource = R.drawable.ic_pump_on_anim;
+                    Glide.with(MainActivity.this)
+                            .asGif()
+                            .load(iconResource)
+                            .into(pumpIcon);
+
+                } if(!isChecked) {
+                    int iconResource = R.drawable.ic_pump_off;
+                    Glide.with(MainActivity.this)
+                            .asGif()
+                            .load(iconResource)
+                            .into(pumpIcon);
+                }
+
+                // Make the HTTP API call immediately when the state changes
+                String actuatorCommand = isChecked ? "dc_on" : "dc_off";
                 makeApiCall(actuatorCommand);
                 Log.d("ButtonState", "isChecked: " + isChecked);
                 Log.d("ApiCall", "Actuator Command: " + actuatorCommand);

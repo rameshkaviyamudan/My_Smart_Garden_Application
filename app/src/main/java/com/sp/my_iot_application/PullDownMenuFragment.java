@@ -118,7 +118,7 @@ public class PullDownMenuFragment extends Fragment {
             String actuatorCommand = "";
 
             if ("Fan".equals(selectedDevice)) {
-                actuatorCommand = "on".equals(selectedStatus.toLowerCase()) ? "servo_forward" : "servo_backward";
+                actuatorCommand = "on".equals(selectedStatus.toLowerCase()) ? "servo_on" : "servo_off";
             } else if ("UV Light".equals(selectedDevice)) {
                 actuatorCommand = "on".equals(selectedStatus.toLowerCase()) ? "led_on" : "led_off";
             }else if ("Pump".equals(selectedDevice)) {
