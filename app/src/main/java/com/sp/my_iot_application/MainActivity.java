@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView arrowIcon;
 
     private TextView field4TextView;
+    private boolean isFirstLaunch;
 
 
     private BottomNavigationView bottomNavigationView;
@@ -64,9 +65,17 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         createNotificationChannel();
         // Initialize views
-        // Call a method to show the IP and port input dialog
-        showIpAddressPortDialog();
 
+        // Check if it's the first launch
+        isFirstLaunch = isFirstLaunch();
+
+        if (isFirstLaunch) {
+            // If it's the first launch, show the IP and port input dialog
+            showIpAddressPortDialog();
+        } else {
+            // If it's not the first launch, retrieve server details from SharedPreferences
+            retrieveServerDetails();
+        }
         arrowIcon = findViewById(R.id.arrowIcon);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         // Assuming you have a GifImageView for fan and lamp icons
@@ -167,10 +176,14 @@ public class MainActivity extends AppCompatActivity {
                         // Handle bottom navigation item clicks here
                         if (item.getItemId() == R.id.action_home) {
                             // Handle Home
-                            Intent intent = new Intent(MainActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            // Finish the current activity
-                            finish();
+                            if (isFirstLaunch) {
+                                // If it's the first launch, show the IP and port input dialog
+                                showIpAddressPortDialog();
+                            } else {
+                                // If it's not the first launch, go back to the main activity
+                                finish();
+                                startActivity(getIntent());
+                            }
                             return true;
                         } else if (item.getItemId() == R.id.action_tips) {
                             // Handle Tips
@@ -189,6 +202,21 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Check if it's the first launch
+        isFirstLaunch = isFirstLaunch();
+
+        if (isFirstLaunch) {
+            // If it's the first launch, show the IP and port input dialog
+            showIpAddressPortDialog();
+        } else {
+            // If it's not the first launch, retrieve server details from SharedPreferences
+            retrieveServerDetails();
+        }
     }
     // Function to open PullDownMenuFragmentTest
     private void openPullDownMenuFragmentTest() {
@@ -443,6 +471,19 @@ public class MainActivity extends AppCompatActivity {
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container2, fragment)
                 .commit();
+    }
+    private boolean isFirstLaunch() {
+        SharedPreferences preferences = getSharedPreferences("AppPreferences", Context.MODE_PRIVATE);
+        boolean isFirstLaunch = preferences.getBoolean("isFirstLaunch", true);
+
+        if (isFirstLaunch) {
+            // If it's the first launch, update the preference to false
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean("isFirstLaunch", false);
+            editor.apply();
+        }
+
+        return isFirstLaunch;
     }
 
 }

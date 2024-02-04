@@ -9,10 +9,12 @@
 
     <!-- Temperature CardView -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/temperatureCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="10dp"
-        card_view:cardElevation="4dp">
+        card_view:cardElevation="4dp"
+        android:onClick="onTemperatureCardClick">
 
         <TextView
             android:id="@+id/temperatureText"
@@ -25,10 +27,12 @@
 
     <!-- Humidity CardView -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/humidityCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="10dp"
-        card_view:cardElevation="4dp">
+        card_view:cardElevation="4dp"
+        android:onClick="onHumidityCardClick">
 
         <TextView
             android:id="@+id/humidityText"
@@ -41,10 +45,12 @@
 
     <!-- Moisture CardView -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/MoistureCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="10dp"
-        card_view:cardElevation="4dp">
+        card_view:cardElevation="4dp"
+        android:onClick="onMoistureCardClick">
 
         <TextView
             android:id="@+id/moistureText"
@@ -57,10 +63,12 @@
 
     <!-- Potentiometer CardView -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/PotentiometerCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="10dp"
-        card_view:cardElevation="4dp">
+        card_view:cardElevation="4dp"
+        android:onClick="onPotentiometerCardClick">
 
         <TextView
             android:id="@+id/potentiometerText"
@@ -73,9 +81,11 @@
 
     <!-- LDR CardView -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/LDRCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        card_view:cardElevation="4dp">
+        card_view:cardElevation="4dp"
+        android:onClick="onLdrCardClick">
 
         <TextView
             android:id="@+id/ldrText"

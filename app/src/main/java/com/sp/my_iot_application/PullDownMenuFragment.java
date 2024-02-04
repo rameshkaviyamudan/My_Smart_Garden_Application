@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -121,7 +122,7 @@ public class PullDownMenuFragment extends Fragment {
             } else if ("UV Light".equals(selectedDevice)) {
                 actuatorCommand = "on".equals(selectedStatus.toLowerCase()) ? "led_on" : "led_off";
             }else if ("Pump".equals(selectedDevice)) {
-                actuatorCommand = "on".equals(selectedStatus.toLowerCase()) ? "led_on" : "led_off";
+                actuatorCommand = "on".equals(selectedStatus.toLowerCase()) ? "dc_on" : "dc_off";
             }
 
             // Make the API call with the determined actuator command
@@ -167,10 +168,14 @@ public class PullDownMenuFragment extends Fragment {
 
 
         } catch (SecurityException e) {
-            // Handle the SecurityException appropriately
+            // Log detailed information about the exception for debugging
             e.printStackTrace();
+            Log.e("SecurityException", "Exception message: " + e.getMessage());
+
+            // Display a Toast to inform the user about the issue
             Toast.makeText(requireContext(), "SecurityException: Unable to schedule exact alarm", Toast.LENGTH_SHORT).show();
         }
+
     }
 
     private void makeApiCall(int fieldNumber, int fieldValue, int hour, int minute) {

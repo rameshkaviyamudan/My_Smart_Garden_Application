@@ -20,7 +20,7 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_dashboard);
+        setContentView(R.layout.fragment_dashboard);
 
         // Initialize TextViews
         temperatureText = findViewById(R.id.temperatureText);
