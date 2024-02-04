@@ -58,13 +58,15 @@ public class DashboardFragment extends Fragment {
             public void onClick(View v) {
                 // Handle temperature card click
                 fetchHistoricalSensorData("temperature");
+
             }
         });
         view.findViewById(R.id.humidityCard).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Handle temperature card click
+                // Handle humidity card click
                 fetchHistoricalSensorData("humidity");
+
             }
         });
         view.findViewById(R.id.MoistureCard).setOnClickListener(new View.OnClickListener() {
@@ -72,6 +74,7 @@ public class DashboardFragment extends Fragment {
             public void onClick(View v) {
                 // Handle temperature card click
                 fetchHistoricalSensorData("moisture");
+
             }
         });
         view.findViewById(R.id.PotentiometerCard).setOnClickListener(new View.OnClickListener() {
@@ -79,6 +82,7 @@ public class DashboardFragment extends Fragment {
             public void onClick(View v) {
                 // Handle temperature card click
                 fetchHistoricalSensorData("potentiometer");
+
             }
         });
         view.findViewById(R.id.LDRCard).setOnClickListener(new View.OnClickListener() {
@@ -86,6 +90,7 @@ public class DashboardFragment extends Fragment {
             public void onClick(View v) {
                 // Handle temperature card click
                 fetchHistoricalSensorData("ldr");
+
             }
         });
         // Fetch sensor data
@@ -95,7 +100,6 @@ public class DashboardFragment extends Fragment {
     }
     public void onLdrCardClick(View view) {
         // Fetch historical data for LDR
-        fetchHistoricalSensorData("ldr");
     }
 
     private void fetchSensorData() {
@@ -146,17 +150,15 @@ public class DashboardFragment extends Fragment {
     }
 
     private void showFailureToast(String message) {
-        Toast.makeText(requireActivity(), message, Toast.LENGTH_SHORT).show();
-    }
-    private void showGraph(String dataType) {
-        // Create a dialog or another fragment to show the graph
-        GraphDialogFragment graphDialogFragment = GraphDialogFragment.newInstance(dataType);
-        graphDialogFragment.show(getChildFragmentManager(), "graph_dialog");
+        requireActivity().runOnUiThread(() -> Toast.makeText(requireActivity(), message, Toast.LENGTH_SHORT).show());
     }
 
-    private void fetchHistoricalSensorData(String dataType) {
+
+
+    private void fetchHistoricalSensorData(String sensorType) {
         new Thread(() -> {
             try {
+                // Fetch historical data based on the selected sensor type
                 SharedPreferences preferences = requireActivity().getSharedPreferences("ServerDetails", requireActivity().MODE_PRIVATE);
                 String serverIpAddress = preferences.getString("serverIpAddress", null);
                 int serverPort = preferences.getInt("serverPort", 0);
@@ -166,15 +168,12 @@ public class DashboardFragment extends Fragment {
                     return;
                 }
 
-                // Make sure to use GET method
-                URL url = new URL("http://" + serverIpAddress + ":" + serverPort + "/historical_sensor_data?dataType=" + URLEncoder.encode(dataType, "UTF-8"));
+                // Customize the URL based on the selected sensor type
+                String historicalDataUrl = "http://" + serverIpAddress + ":" + serverPort + "/historical_sensor_data?type=" + sensorType;
+                URL url = new URL(historicalDataUrl);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                try {
-                    // Set up the request properties
-                    urlConnection.setRequestMethod("GET");
-                    urlConnection.setRequestProperty("Content-Type", "application/json");
 
-                    // Read the response
+                try {
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
                     StringBuilder stringBuilder = new StringBuilder();
                     String line;
@@ -182,9 +181,7 @@ public class DashboardFragment extends Fragment {
                         stringBuilder.append(line).append("\n");
                     }
                     bufferedReader.close();
-
-                    // Process and update the dashboard with historical data
-                    showGraph(dataType); // Pass the historical data as a string
+                    updateGraph(new JSONObject(stringBuilder.toString()), sensorType);
                 } finally {
                     urlConnection.disconnect();
                 }
@@ -195,6 +192,50 @@ public class DashboardFragment extends Fragment {
         }).start();
     }
 
+    private void updateGraph(JSONObject historicalData, String sensorType) {
+        // Extract timestamp and values from historicalData and pass it to GraphDialogFragment
+        try {
+            JSONArray data = historicalData.getJSONArray("data");
+            List<Entry> entries = new ArrayList<>();
+
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject entry = data.getJSONObject(i);
+                String timestampString = entry.getString("timestamp");
+
+                float value;
+                if (sensorType.equals("moisture")) {
+                    // Handle moisture data
+                    boolean moistureValue = entry.getBoolean("moisture");
+                    value = moistureValue ? 1f : 0f;
+                } else {
+                    // Handle other sensor data
+                    value = (float) entry.getDouble(sensorType);
+                }
+
+                // Parse timestamp to Date object
+                Date timestamp = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US).parse(timestampString);
+
+                // Add entry to the list
+                entries.add(new Entry(timestamp.getTime(), value));
+            }
+
+            // Create a bundle to pass data to GraphDialogFragment
+            Bundle bundle = new Bundle();
+            bundle.putString("sensorType", sensorType);
+            bundle.putSerializable("entries", (ArrayList<Entry>) entries);
+
+            // Create and show GraphDialogFragment
+            requireActivity().runOnUiThread(() -> {
+                GraphDialogFragment graphDialogFragment = new GraphDialogFragment();
+                graphDialogFragment.setArguments(bundle);
+                graphDialogFragment.show(getParentFragmentManager(), "graphDialog");
+            });
+
+        } catch (JSONException | ParseException e) {
+            e.printStackTrace();
+            showFailureToast("Error parsing historical data: " + e.getMessage());
+        }
+    }
 
 
 // ... Your DashboardFragment class ...

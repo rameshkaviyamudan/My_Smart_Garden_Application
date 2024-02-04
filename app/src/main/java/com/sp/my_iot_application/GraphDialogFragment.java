@@ -1,191 +1,217 @@
 package com.sp.my_iot_application;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.Chart;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.LegendEntry;
 import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.ValueFormatter;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class GraphDialogFragment extends DialogFragment {
 
-    private String dataType;
-    private String historicalDataString;
-
-    public static GraphDialogFragment newInstance(String dataType) {
-        GraphDialogFragment fragment = new GraphDialogFragment();
-        Bundle args = new Bundle();
-        args.putString("dataType", dataType);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            dataType = getArguments().getString("dataType");
-            historicalDataString = getArguments().getString("historicalDataString");
-        }
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_graph_dialog, container, false);
 
-        // Display the dataType in a Toast
-        Toast.makeText(requireActivity(), "Data Type: " + dataType, Toast.LENGTH_SHORT).show();
+        // Get the entries from the bundle
+        Bundle bundle = getArguments();
+        if (bundle != null) {
+            // Get the sensor type from the bundle
+            String sensorType = bundle.getString("sensorType", "");
 
-        // Initialize LineChart in the dialog and populate it with historical data
-        LineChart lineChart = view.findViewById(R.id.dialogLineChart);
-        setupLineChart(lineChart);
+            // Set the title dynamically
+            TextView titleTextView = view.findViewById(R.id.messageTextView);
+            titleTextView.setText(sensorType + " Graph");
 
-        // Fetch and display historical data
-        fetchHistoricalData();
+            List<Entry> entries = (ArrayList<Entry>) bundle.getSerializable("entries");
+
+            // Determine the appropriate chart type based on the sensor type
+            Chart chart = createChart(view, sensorType);
+
+            // Update the chart with entries
+            updateChart(chart, entries, sensorType);
+        } else {
+            // Handle error if entries are not available
+            Toast.makeText(requireContext(), "Error: No data available", Toast.LENGTH_SHORT).show();
+            dismiss();
+        }
 
         return view;
     }
-    private void fetchHistoricalData() {
-        new Thread(() -> {
-            try {
-                // Fetch historical data based on dataType
 
-                SharedPreferences preferences = requireActivity().getSharedPreferences("ServerDetails", requireActivity().MODE_PRIVATE);
-                String serverIpAddress = preferences.getString("serverIpAddress", null);
-                int serverPort = preferences.getInt("serverPort", 0);
-
-                if (serverIpAddress == null || serverPort == 0) {
-                    requireActivity().runOnUiThread(() -> showFailureToast("Server IP or Port not set"));
-                    return;
-                }
-
-                // Make sure to use GET method
-                URL url = new URL("http://" + serverIpAddress + ":" + serverPort + "/historical_sensor_data?dataType=" + URLEncoder.encode(dataType, "UTF-8"));
-                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                try {
-                    // Set up the request properties
-                    urlConnection.setRequestMethod("GET");
-                    urlConnection.setRequestProperty("Content-Type", "application/json");
-
-                    // Read the response
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                    StringBuilder stringBuilder = new StringBuilder();
-                    String line;
-                    while ((line = bufferedReader.readLine()) != null) {
-                        stringBuilder.append(line).append("\n");
-                    }
-                    bufferedReader.close();
-
-                } finally {
-                    urlConnection.disconnect();
-                }
-                // Process and display the graph
-                requireActivity().runOnUiThread(() -> processAndDisplayGraph(historicalDataString));
-            } catch (Exception e) {
-                e.printStackTrace();
-                requireActivity().runOnUiThread(() -> showFailureToast("Error fetching historical data: " + e.getMessage()));
-            }
-        }).start();
-    }
-    private void processAndDisplayGraph(String historicalDataString) {
-        try {
-            JSONObject historicalData = new JSONObject(historicalDataString);
-            showGraphWithData(dataType, historicalData);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            showFailureToast("Error processing historical data: " + e.getMessage());
-        }
-    }
-    private void setupLineChart(LineChart lineChart) {
-        // Customize the appearance of the line chart in the dialog
+    private void configureLineChart(LineChart lineChart) {
+        // Configure LineChart appearance and behavior
+        lineChart.getDescription().setEnabled(false);
         lineChart.setTouchEnabled(true);
         lineChart.setDragEnabled(true);
         lineChart.setScaleEnabled(true);
 
-        // Add other customizations as needed
+        // Configure X-axis
         XAxis xAxis = lineChart.getXAxis();
-        //xAxis.setValueFormatter(new TimestampAxisValueFormatter());
+        xAxis.setValueFormatter(new DateAxisValueFormatter());
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setGranularity(30f); // Set the granularity to adjust the spacing between labels
+
     }
 
-    private void showGraphWithData(String dataType, JSONObject historicalData) {
-        try {
-            JSONArray data = historicalData.getJSONArray("data");
+    private void updateLineChart(LineChart lineChart, List<Entry> entries, String sensorDataType) {
+        if (sensorDataType.equals("moisture")) {
+            // If moisture data, convert LineChart to BarChart
+            convertToBarChart(lineChart, entries);
+        } else {
+            // For other sensor data, use a LineDataSet
+            LineDataSet lineDataSet = new LineDataSet(entries, sensorDataType + " Data");
+            LineData lineData = new LineData(lineDataSet);
+            lineChart.setData(lineData);
 
-            // Extract values and timestamps
-            List<Entry> entries = new ArrayList<>();
+            // Configure LineChart
+            configureLineChart(lineChart);
 
-            for (int i = 0; i < data.length(); i++) {
-                JSONObject entry = data.getJSONObject(i);
+            // Automatically move the viewport to the current time
+            moveViewToCurrentTime(lineChart, entries);
 
-                if (!entry.has("message")) {
-                    long timestamp = getTimestampFromString(entry.getString("timestamp"));
-                    float value = (float) entry.getInt(dataType.toLowerCase()); // Assuming value key matches data type
-                    entries.add(new Entry(timestamp, value));
-                }
-            }
+            // Invalidate the chart to refresh
+            lineChart.invalidate();
+        }
+    }
+    private void configureBarChart(BarChart barChart) {
+        // Add any additional configurations specific to BarChart
+        // For example, you might want to adjust the bar width, add legends, etc.
+        // Configure legend
+        Legend legend = barChart.getLegend();
+        legend.setForm(Legend.LegendForm.SQUARE);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER);
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
+        legend.setOrientation(Legend.LegendOrientation.HORIZONTAL);
+        legend.setDrawInside(false);
 
-            // Display the graph
-            updateGraph(entries);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            showFailureToast("Error processing historical data: " + e.getMessage());
+        // Set legend labels
+        legend.setExtra(Arrays.asList(
+                new LegendEntry("True", Legend.LegendForm.SQUARE, 8f, 8f, null, ContextCompat.getColor(requireContext(), R.color.black)),
+                new LegendEntry("False", Legend.LegendForm.SQUARE, 8f, 8f, null, ContextCompat.getColor(requireContext(), R.color.purple_200))
+        ));
+    }
+    private void moveViewToCurrentTime(LineChart lineChart, List<Entry> entries) {
+        long currentTimeMillis = System.currentTimeMillis();
+
+        // Set an offset to provide some margin on the right side
+        float offset = 100f; // You can adjust this value based on your preference
+
+        // Set the minimum visible range to 1 (to ensure the rightmost entry is fully visible)
+        lineChart.setVisibleXRangeMinimum(1);
+
+        // Move the view to the current time
+        lineChart.moveViewToX(currentTimeMillis + offset);
+    }
+
+    private static class DateAxisValueFormatter extends ValueFormatter {
+        private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss", Locale.US);
+
+        @Override
+        public String getFormattedValue(float value) {
+            // Convert timestamp to formatted date
+            Date date = new Date((long) value);
+            return dateFormat.format(date);
         }
     }
 
-    private void updateGraph(List<Entry> entries) {
-        requireActivity().runOnUiThread(() -> {
-            if (getView() != null) {
-                LineDataSet dataSet = new LineDataSet(entries, "Historical Data");
-                LineData lineData = new LineData(dataSet);
-                LineChart lineChart = getView().findViewById(R.id.dialogLineChart);
-                lineChart.setData(lineData);
-
-                // Notify the chart data has changed
-                lineChart.notifyDataSetChanged();
-                lineChart.invalidate();
-            }
-        });
-    }
-
-
-    private long getTimestampFromString(String timestampString) {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault());
-            Date date = sdf.parse(timestampString);
-            if (date != null) {
-                return date.getTime();
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
+    private List<BarEntry> convertToBarEntries(List<Entry> entries) {
+        List<BarEntry> barEntries = new ArrayList<>();
+        for (Entry entry : entries) {
+            barEntries.add(new BarEntry(entry.getX(), entry.getY()));
         }
-        return 0;
+        return barEntries;
+    }
+    private void convertToBarChart(LineChart lineChart, List<Entry> entries) {
+        // Convert LineChart to BarChart
+        BarChart barChart = new BarChart(requireContext());
+        List<BarEntry> barEntries = convertToBarEntries(entries);
+
+        BarDataSet barDataSet = new BarDataSet(barEntries, "Moisture Data");
+
+        // Set color for true and false values
+        int trueColor = ContextCompat.getColor(requireContext(), R.color.black); // Change R.color.colorTrue to your true color resource
+        int falseColor = ContextCompat.getColor(requireContext(), R.color.purple_200); // Change R.color.colorFalse to your false color resource
+
+        barDataSet.setColors(new int[]{trueColor, falseColor});
+
+        BarData barData = new BarData(barDataSet);
+        barChart.setData(barData);
+
+        // Configure BarChart
+        configureBarChart(barChart);
+
+        // Replace the LineChart with BarChart in the layout
+        ViewGroup parent = (ViewGroup) lineChart.getParent();
+        int index = parent.indexOfChild(lineChart);
+        parent.removeViewAt(index);
+        parent.addView(barChart, index);
+    }
+    private Chart createChart(View view, String sensorDataType) {
+        Chart chart;
+        if (sensorDataType.equals("moisture")) {
+            // For moisture data, use a BarChart
+            chart = view.findViewById(R.id.dialogBarChart);
+            configureBarChart((BarChart) chart);
+        } else {
+            // For other sensor data, use a LineChart
+            chart = view.findViewById(R.id.dialogLineChart);
+            configureLineChart((LineChart) chart);
+        }
+        return chart;
+    }
+    private void updateChart(Chart chart, List<Entry> entries, String sensorDataType) {
+        if (sensorDataType.equals("moisture") && chart instanceof BarChart) {
+            // For moisture data and BarChart, update the chart
+            updateBarChart((BarChart) chart, entries);
+        } else if (chart instanceof LineChart) {
+            // For other sensor data and LineChart, update the chart
+            updateLineChart((LineChart) chart, entries, sensorDataType);
+        }
+    }
+    private void updateBarChart(BarChart barChart, List<Entry> entries) {
+        List<BarEntry> barEntries = convertToBarEntries(entries);
+
+        BarDataSet barDataSet = new BarDataSet(barEntries, "Moisture Data");
+
+        // Set color for true and false values
+        int trueColor = ContextCompat.getColor(requireContext(), R.color.black); // Change R.color.colorTrue to your true color resource
+        int falseColor = ContextCompat.getColor(requireContext(), R.color.purple_200); // Change R.color.colorFalse to your false color resource
+
+        barDataSet.setColors(new int[]{trueColor, falseColor});
+
+        BarData barData = new BarData(barDataSet);
+        barChart.setData(barData);
+
+        // Configure BarChart
+        configureBarChart(barChart);
+
+        // Invalidate the chart to refresh
+        barChart.invalidate();
     }
 
-    private void showFailureToast(String message) {
-        Toast.makeText(requireActivity(), message, Toast.LENGTH_SHORT).show();
-    }
 }
