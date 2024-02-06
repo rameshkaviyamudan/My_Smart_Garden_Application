@@ -362,7 +362,6 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-
         // Add the request to the request queue
         requestQueue.add(stringRequest);
     }
