@@ -9,7 +9,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.Settings;
 import android.text.InputType;
 import android.util.Log;
@@ -39,11 +41,24 @@ import android.widget.Toast;
 // Use the appropriate import statements
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import pl.droidsonroids.gif.GifImageView;
 public class MainActivity extends AppCompatActivity {
@@ -59,13 +74,15 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     public static final String CHANNEL_ID = "MyIOTChannel";
     private static final int NOTIFICATION_REQUEST_CODE = 1001;
+    private Handler handler = new Handler();
+    private Runnable runnable;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         createNotificationChannel();
-        // Initialize views
 
+        startNotificationsCheck();
         // Check if it's the first launch
         isFirstLaunch = isFirstLaunch();
 
@@ -240,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -264,6 +282,90 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.addToBackStack(null);
         fragmentTransaction.commit();
     }
+
+
+    private void startNotificationsCheck() {
+        // Create a runnable to check for notifications
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                // Perform the HTTP request to fetch notifications
+                fetchNotifications();
+
+                // Schedule the next check after a delay (e.g., 30 seconds)
+                handler.postDelayed(this, 30000); // 30 seconds delay
+            }
+        };
+
+        // Start the initial check
+        handler.post(runnable);
+    }
+
+    // Call this method to stop periodic checking for new notifications
+    private void stopNotificationsCheck() {
+        if (handler != null && runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
+    }
+
+    // Method to fetch notifications and display toast if new notifications are available
+    private void fetchNotifications() {
+        // Perform an HTTP GET request to fetch notifications
+        // You can use libraries like Volley or Retrofit for network requests
+
+        // Example of using Volley for the request (you may need to include the Volley library):
+        String url = "http://192.168.2.193:5000/get_notifications";
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+
+        StringRequest stringRequest = new StringRequest(
+                Request.Method.GET,
+                url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            // Parse the response as JSON
+                            JSONObject jsonResponse = new JSONObject(response);
+
+                            // Check if the status is "success"
+                            if (jsonResponse.has("status") && jsonResponse.getString("status").equals("success")) {
+                                // Get the notifications array
+                                JSONArray notificationsArray = jsonResponse.getJSONArray("notifications");
+
+                                // Check if there are new notifications
+                                if (notificationsArray.length() > 0) {
+                                    // Get the latest notification
+                                    JSONObject latestNotification = notificationsArray.getJSONObject(notificationsArray.length() - 1);
+
+                                    // Check if the message matches the desired message
+                                    if (latestNotification.has("message")) {
+                                        String message = latestNotification.getString("message");
+
+                                        // Check if the message is "DC motor activated for EC < 800"
+                                        if (message.equals("DC motor activated for EC < 800")) {
+                                            // Display the toast with the message
+                                            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
+                    }
+                }
+        );
+
+        // Add the request to the request queue
+        requestQueue.add(stringRequest);
+    }
+
 
     // Method to toggle the visibility of the pull-down menu with animation
     private void togglePullDownMenu() {
