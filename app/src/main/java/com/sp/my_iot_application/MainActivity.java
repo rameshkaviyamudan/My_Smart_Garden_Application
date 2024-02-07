@@ -12,6 +12,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.InputType;
 import android.util.Log;
@@ -30,6 +31,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.android.volley.NetworkError;
+import com.android.volley.ServerError;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -44,6 +47,7 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -69,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView field4TextView;
     private boolean isFirstLaunch;
+    private RequestQueue requestQueue;
 
 
     private BottomNavigationView bottomNavigationView;
@@ -310,59 +315,45 @@ public class MainActivity extends AppCompatActivity {
 
     // Method to fetch notifications and display toast if new notifications are available
     private void fetchNotifications() {
-        // Perform an HTTP GET request to fetch notifications
-        // You can use libraries like Volley or Retrofit for network requests
+        SharedPreferences preferences = getSharedPreferences("ServerDetails", MODE_PRIVATE);
+        String serverIpAddress = preferences.getString("serverIpAddress", "");
+        int serverPort = preferences.getInt("serverPort", 0);
 
-        // Example of using Volley for the request (you may need to include the Volley library):
-        String url = "http://192.168.2.193:5000/get_notifications";
+        if (serverIpAddress.isEmpty() || serverPort == 0) {
+            Toast.makeText(getApplicationContext(), "Server IP or Port not set", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String url = "http://" + serverIpAddress + ":" + serverPort + "/get_notifications";
+
+        // Instantiate the RequestQueue.
         RequestQueue requestQueue = Volley.newRequestQueue(this);
 
-        StringRequest stringRequest = new StringRequest(
-                Request.Method.GET,
-                url,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        try {
-                            // Parse the response as JSON
-                            JSONObject jsonResponse = new JSONObject(response);
-
-                            // Check if the status is "success"
-                            if (jsonResponse.has("status") && jsonResponse.getString("status").equals("success")) {
-                                // Get the notifications array
-                                JSONArray notificationsArray = jsonResponse.getJSONArray("notifications");
-
-                                // Check if there are new notifications
-                                if (notificationsArray.length() > 0) {
-                                    // Get the latest notification
-                                    JSONObject latestNotification = notificationsArray.getJSONObject(notificationsArray.length() - 1);
-
-                                    // Check if the message matches the desired message
-                                    if (latestNotification.has("message")) {
-                                        String message = latestNotification.getString("message");
-
-                                        // Check if the message is "DC motor activated for EC < 800"
-                                        if (message.equals("DC motor activated for EC < 800")) {
-                                            // Display the toast with the message
-                                            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
-                                        }
-                                    }
-                                }
+        // Request a string response from the provided URL.
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                response -> {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        if ("success".equals(jsonResponse.getString("status"))) {
+                            JSONArray notificationsArray = jsonResponse.getJSONArray("notifications");
+                            // Iterate through all notifications
+                            for (int i = 0; i < notificationsArray.length(); i++) {
+                                JSONObject notification = notificationsArray.getJSONObject(i);
+                                String message = notification.getString("message");
+                                // Display each message as a Toast
+                                Handler mainHandler = new Handler(Looper.getMainLooper());
+                                String finalMessage = message;
+                                mainHandler.post(() -> Toast.makeText(MainActivity.this, finalMessage, Toast.LENGTH_LONG).show());
                             }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
                         }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "Error parsing JSON response", Toast.LENGTH_LONG).show();
                     }
                 },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                    }
-                }
-        );
+                error -> Toast.makeText(MainActivity.this, "Error fetching notifications", Toast.LENGTH_LONG).show());
 
-        // Add the request to the request queue
+        // Add the request to the RequestQueue.
         requestQueue.add(stringRequest);
     }
 
