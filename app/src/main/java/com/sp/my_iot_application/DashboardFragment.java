@@ -35,11 +35,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class DashboardFragment extends Fragment {
 
     private TextView temperatureText, humidityText, moistureText, potentiometerText, ldrText;
     private LineChart lineChart;
+    private ScheduledExecutorService scheduler;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -94,7 +98,8 @@ public class DashboardFragment extends Fragment {
             }
         });
         // Fetch sensor data
-        fetchSensorData();
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(() -> fetchSensorData(), 0, 1, TimeUnit.SECONDS);
 
         return view;
     }
@@ -130,7 +135,6 @@ public class DashboardFragment extends Fragment {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                requireActivity().runOnUiThread(() -> showFailureToast("Error fetching data: " + e.getMessage()));
             }
         }).start();
     }
