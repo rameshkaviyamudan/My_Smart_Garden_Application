@@ -149,16 +149,35 @@ public class DashboardFragment extends Fragment {
     private void updateDashboard(JSONObject sensorData) {
         requireActivity().runOnUiThread(() -> {
             try {
-                temperatureText.setText("Temperature: " + sensorData.getDouble("temperature"));
-                humidityText.setText("Humidity: " + sensorData.getDouble("humidity"));
-                moistureText.setText("Moisture: " + sensorData.getString("moisture"));
-                potentiometerText.setText("Potentiometer: " + sensorData.getInt("potentiometer"));
-                ldrText.setText("LDR: " + sensorData.getInt("ldr"));
+                // Retrieve sensor data
+                double temperature = sensorData.getDouble("temperature");
+                double humidity = sensorData.getDouble("humidity");
+                String moisture = sensorData.getString("moisture");
+                int potentiometer = sensorData.getInt("potentiometer");
+                int ldr = sensorData.getInt("ldr");
+
+                // Update TextViews with sensor data
+                temperatureText.setText("Temperature: " + temperature);
+                humidityText.setText("Humidity: " + humidity);
+                moistureText.setText("Moisture: " + moisture);
+                potentiometerText.setText("Potentiometer: " + potentiometer);
+                ldrText.setText("LDR: " + ldr);
+
+                // Store the sensor data in SharedPreferences
+                SharedPreferences preferences = requireActivity().getSharedPreferences("SensorData", requireActivity().MODE_PRIVATE);
+                SharedPreferences.Editor editor = preferences.edit();
+                editor.putFloat("temperature", (float) temperature);
+                editor.putFloat("humidity", (float) humidity);
+                editor.putString("moisture", moisture);
+                editor.putInt("potentiometer", potentiometer);
+                editor.putInt("ldr", ldr);
+                editor.apply();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
     }
+
 
     private void showFailureToast(String message) {
         requireActivity().runOnUiThread(() -> Toast.makeText(requireActivity(), message, Toast.LENGTH_SHORT).show());

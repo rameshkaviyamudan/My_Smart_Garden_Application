@@ -90,19 +90,23 @@ public class TipsFragment extends Fragment {
 
 
     private void generateTips() {
-        // Hardcoded sensor data values
-        float temperature = 25.5f;
-        float humidity = 45.7f;
-        float ldr = 65.3f;
-        int potentiometer = 75;
-        String moisture = "Normal";
+        // Retrieve sensor data from SharedPreferences
+        SharedPreferences preferences = requireActivity().getSharedPreferences("SensorData", requireActivity().MODE_PRIVATE);
+        float temperature = preferences.getFloat("temperature", 0f);
+        float humidity = preferences.getFloat("humidity", 0f);
+        float ldr = preferences.getFloat("ldr", 0f);
+        int potentiometer = preferences.getInt("potentiometer", 0);
+        String moisture = preferences.getString("moisture", "");
 
+        // Generate tips based on sensor data
         addTipCard("Temperature Tip", generateTemperatureTip(temperature), Color.parseColor("#FFE0B2")); // Light Orange
         addTipCard("Humidity Tip", generateHumidityTip(humidity), Color.parseColor("#C8E6C9")); // Light Green
         addTipCard("Lighting Tip", generateLDRTip(ldr), Color.parseColor("#D1C4E9")); // Light Purple
         addTipCard("EC Tip", generatePotentiometerTip(potentiometer), Color.parseColor("#FFE0B2")); // Light Orange
         addTipCard("pH Tip", generateMoistureTip(moisture), Color.parseColor("#C8E6C9")); // Light Green
     }
+
+
 
 
     private void addTipCard(String title, String tip, int cardColor) {
