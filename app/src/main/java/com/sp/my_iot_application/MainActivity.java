@@ -246,6 +246,8 @@ public class MainActivity extends AppCompatActivity {
                             return true;
                         } else if (item.getItemId() == R.id.action_tips) {
                             // Handle Tips
+                            loadFragment(new TipsFragment());
+
                             return true;
                         } else if (item.getItemId() == R.id.action_dashboard) {
                             loadFragment(new DashboardFragment());
@@ -351,7 +353,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this, "Error parsing JSON response", Toast.LENGTH_LONG).show();
                     }
                 },
-                error -> Toast.makeText(MainActivity.this, "Error fetching notifications", Toast.LENGTH_LONG).show());
+                error -> Toast.makeText(MainActivity.this, "", Toast.LENGTH_LONG).show());
 
         // Add the request to the RequestQueue.
         requestQueue.add(stringRequest);

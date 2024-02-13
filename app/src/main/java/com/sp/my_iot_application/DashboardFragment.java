@@ -4,6 +4,7 @@ package com.sp.my_iot_application;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,11 +12,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import org.json.JSONArray;
@@ -108,6 +111,10 @@ public class DashboardFragment extends Fragment {
     }
 
     private void fetchSensorData() {
+        if (!isAdded()) {
+            // Fragment is not added to the activity, return
+            return;
+        }
         new Thread(() -> {
             try {
                 SharedPreferences preferences = requireActivity().getSharedPreferences("ServerDetails", requireActivity().MODE_PRIVATE);
@@ -185,7 +192,14 @@ public class DashboardFragment extends Fragment {
                         stringBuilder.append(line).append("\n");
                     }
                     bufferedReader.close();
-                    updateGraph(new JSONObject(stringBuilder.toString()), sensorType);
+
+                    // Extract timestamp and values from historicalData
+                    JSONObject historicalData = new JSONObject(stringBuilder.toString());
+
+
+                                // For other sensor types, continue showing the GraphDialogFragment
+                                updateGraph(historicalData, sensorType);
+
                 } finally {
                     urlConnection.disconnect();
                 }
@@ -196,8 +210,10 @@ public class DashboardFragment extends Fragment {
         }).start();
     }
 
+
+
     private void updateGraph(JSONObject historicalData, String sensorType) {
-        // Extract timestamp and values from historicalData and pass it to GraphDialogFragment
+        // Extract timestamp and values from historicalData and pass it to appropriate dialog fragment
         try {
             JSONArray data = historicalData.getJSONArray("data");
             List<Entry> entries = new ArrayList<>();
@@ -223,16 +239,32 @@ public class DashboardFragment extends Fragment {
                 entries.add(new Entry(timestamp.getTime(), value));
             }
 
-            // Create a bundle to pass data to GraphDialogFragment
+            // Create a bundle to pass data to the appropriate dialog fragment
             Bundle bundle = new Bundle();
             bundle.putString("sensorType", sensorType);
             bundle.putSerializable("entries", (ArrayList<Entry>) entries);
 
-            // Create and show GraphDialogFragment
+            // Decide which dialog fragment to show based on sensor type
             requireActivity().runOnUiThread(() -> {
-                GraphDialogFragment graphDialogFragment = new GraphDialogFragment();
-                graphDialogFragment.setArguments(bundle);
-                graphDialogFragment.show(getParentFragmentManager(), "graphDialog");
+                DialogFragment dialogFragment;
+                if (sensorType.equals("moisture")) {
+                    // Create and show MoistureGraphDialogFragment for moisture data
+                    MoistureGraphDialogFragment moistureGraphDialogFragment = new MoistureGraphDialogFragment();
+                    moistureGraphDialogFragment.setArguments(bundle);
+                    dialogFragment = moistureGraphDialogFragment;
+                } else {
+                    // For other sensor types, continue showing the GraphDialogFragment
+                    GraphDialogFragment graphDialogFragment = new GraphDialogFragment();
+                    graphDialogFragment.setArguments(bundle);
+                    dialogFragment = graphDialogFragment;
+                }
+
+                // Ensure dialogFragment is not null before showing
+                if (dialogFragment != null) {
+                    dialogFragment.show(getParentFragmentManager(), "graph_dialog");
+                } else {
+                    Log.e("UpdateGraph", "DialogFragment is null");
+                }
             });
 
         } catch (JSONException | ParseException e) {
@@ -240,6 +272,12 @@ public class DashboardFragment extends Fragment {
             showFailureToast("Error parsing historical data: " + e.getMessage());
         }
     }
+
+
+
+
+
+
 
 
 // ... Your DashboardFragment class ...

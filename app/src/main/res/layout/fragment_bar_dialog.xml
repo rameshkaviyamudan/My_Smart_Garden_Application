@@ -7,7 +7,7 @@
 
     <!-- Display the message in a TextView -->
     <TextView
-        android:id="@+id/messageTextView"
+        android:id="@+id/messageTextView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Message Placeholder"
@@ -16,13 +16,15 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp"/>
 
+
     <!-- LineChart for displaying the graph -->
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/dialogLineChart"
+    <com.github.mikephil.charting.charts.BarChart
+        android:id="@+id/dialogBarChart"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:layout_below="@id/messageTextView"
-        android:layout_marginTop="16dp"/>
+        android:layout_below="@id/messageTextView2"
+        android:layout_marginTop="16dp" />
+    <!-- FrameLayout to host the chart fragment -->
 
     <!-- Add any other UI components or customization as needed -->
 
